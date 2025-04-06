@@ -1,0 +1,53 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - static_admin:/usr/local/lib/python3.12/site-packages/django/contrib/admin/static/admin
+    working_dir: /app
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - app_net
+    ports:
+      - "${WEB_PORT}:${WEB_PORT}"
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    networks:
+      - app_net
+
+  nginx:
+    image: nginx:alpine
+    env_file:
+      - .env
+    ports:
+      - "${NGINX_PORT}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./static:/app/staticfiles
+      - ./media:/app/media
+      - static_admin:/app/staticfiles/admin
+    depends_on:
+      - web
+    networks:
+      - app_net
+
+volumes:
+  db_data:
+  static_admin:
+
+networks:
+  app_net:
